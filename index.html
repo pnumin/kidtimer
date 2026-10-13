@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>반짝반짝 유치원 정리 타이머</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts: Gaegu & Jua for cute kindergarten aesthetic -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jua&family=Nanum+Round+Gothic:wght@400;700;800&display=swap" rel="stylesheet">
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Nanum Round Gothic', -apple-system, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .font-cute {
+      font-family: 'Jua', cursive, sans-serif;
+    }
+    
+    /* Bounce and float animations */
+    @keyframes floaty {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-8px) rotate(2deg); }
+    }
+    .animate-float {
+      animation: floaty 3s ease-in-out infinite;
+    }
+
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.03); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .animate-pulse-ring {
+      animation: pulse-ring 2s ease-in-out infinite;
+    }
+
+    /* Soft Cloud Pattern Background */
+    .bg-kindergarten {
+      background: radial-gradient(circle at 10% 20%, #FFF3B0 0%, #E3F2FD 40%, #FCE4EC 80%, #EDE7F6 100%);
+      background-size: 200% 200%;
+      animation: bgShift 15s ease infinite alternate;
+    }
+
+    @keyframes bgShift {
+      0% { background-position: 0% 0%; }
+      100% { background-position: 100% 100%; }
+    }
+
+    /* Circular Progress Transition */
+    #progress-circle {
+      transition: stroke-dashoffset 0.8s ease-in-out, stroke 0.5s ease;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+
+    /* Custom cute button tap effect */
+    .btn-bounce {
+      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
+    }
+    .btn-bounce:hover {
+      transform: translateY(-3px) scale(1.02);
+    }
+    .btn-bounce:active {
+      transform: translateY(2px) scale(0.96);
+    }
+  </style>
+</head>
+<body class="bg-kindergarten min-h-screen flex flex-col justify-between text-slate-800 p-3 sm:p-6 overflow-x-hidden">
+
+  <header class="w-full max-w-4xl mx-auto flex items-center justify-between bg-white/80 backdrop-blur-md px-5 py-3 rounded-3xl shadow-lg border-2 border-amber-200">
+    <div class="flex items-center gap-3">
+      <div class="w-12 h-12 bg-amber-300 rounded-2xl flex items-center justify-center text-amber-900 shadow-md transform -rotate-3 text-2xl">
+        ⭐
+      </div>
+      <div>
+        <h1 class="font-cute text-2xl sm:text-3xl text-amber-600 leading-tight">햇살반 정리 타이머</h1>
+        <p class="text-xs text-slate-500 font-bold">노래하고 정리하는 착한 어린이 시간 🎶</p>
+      </div>
+    </div>
+
+    <!-- Quick action buttons -->
+    <div class="flex items-center gap-2">
+      <!-- Voice Toggle -->
+      <button id="tts-toggle-btn" class="flex items-center gap-1.5 px-3 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 text-sm font-bold rounded-2xl border border-emerald-300 transition shadow-sm" title="음성 안내 켜기/끄기">
+        <i class="fa-solid fa-volume-high text-emerald-600"></i>
+        <span class="hidden sm:inline">음성 안내 ON</span>
+      </button>
+
+      <!-- Voice Test Button -->
+      <button id="voice-test-btn" class="flex items-center gap-1.5 px-3 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 text-sm font-bold rounded-2xl border border-purple-300 transition shadow-sm" title="음성 미리듣기">
+        <i class="fa-solid fa-microphone-lines"></i>
+        <span class="hidden sm:inline">목소리 듣기</span>
+      </button>
+
+      <!-- Fullscreen Toggle -->
+      <button id="fullscreen-btn" class="p-2.5 bg-sky-100 hover:bg-sky-200 text-sky-700 rounded-2xl border border-sky-300 transition shadow-sm" title="전체화면">
+        <i class="fa-solid fa-expand text-lg"></i>
+      </button>
+    </div>
+  </header>
+
+  <main class="w-full max-w-4xl mx-auto my-auto flex flex-col items-center justify-center pt-2 pb-4">
+    
+    <!-- Character & Speech Bubble Area -->
+    <div class="flex flex-col items-center mb-1">
+      <div id="speech-bubble" class="font-cute relative bg-white px-5 py-2.5 rounded-2xl shadow-md border-2 border-pink-300 text-pink-600 text-lg sm:text-2xl font-bold animate-bounce mb-3 max-w-md text-center">
+        <span id="speech-text">장난감 친구들을 제자리에 쏙쏙 넣어줘요! 💕</span>
+        <!-- Speech bubble arrow -->
+        <div class="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-t-[10px] border-t-pink-300"></div>
+      </div>
+
+      <!-- Mascots Row (Click to change mascot) -->
+      <div class="flex items-center gap-2">
+        <button id="mascot-btn" class="animate-float cursor-pointer text-6xl sm:text-7xl p-1 select-none transform hover:scale-110 transition active:scale-95" title="캐릭터를 누르면 친구가 바뀌어요!">
+          <span id="mascot-emoji">🧸</span>
+        </button>
+        <span class="text-xs bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full font-bold border border-amber-300 shadow-sm">
+          클릭해서 친구 바꾸기
+        </span>
+      </div>
+    </div>
+
+    <div class="relative w-72 h-72 sm:w-88 sm:h-88 md:w-96 md:h-96 flex items-center justify-center my-1">
+      <!-- Background Glow Ring -->
+      <div id="glow-ring" class="absolute inset-4 rounded-full bg-amber-200/50 filter blur-xl transition-all duration-700"></div>
+
+      <!-- Circular SVG Progress -->
+      <svg class="w-full h-full" viewBox="0 0 280 280">
+        <!-- Background Track -->
+        <circle
+          cx="140"
+          cy="140"
+          r="115"
+          fill="none"
+          stroke="#F1F5F9"
+          stroke-width="20"
+        />
+        <!-- Inner Decorative Border -->
+        <circle
+          cx="140"
+          cy="140"
+          r="100"
+          fill="#FFFFFF"
+          fill-opacity="0.9"
+          stroke="#E2E8F0"
+          stroke-width="3"
+          stroke-dasharray="6 6"
+        />
+        <!-- Animated Main Progress Bar -->
+        <circle
+          id="progress-circle"
+          cx="140"
+          cy="140"
+          r="115"
+          fill="none"
+          stroke="#F59E0B"
+          stroke-width="20"
+          stroke-linecap="round"
+          stroke-dasharray="722.56"
+          stroke-dashoffset="0"
+        />
+      </svg>
+
+      <!-- Center Time Display & Status -->
+      <div class="absolute flex flex-col items-center justify-center pointer-events-none">
+        <span id="status-badge" class="font-cute px-3 py-0.5 rounded-full text-sm sm:text-base font-bold bg-amber-100 text-amber-700 border border-amber-300 mb-1">
+          정리 준비 중
+        </span>
+        <div id="time-display" class="font-cute text-6xl sm:text-7xl md:text-8xl text-slate-800 font-extrabold tracking-wider leading-none">
+          05:00
+        </div>
+        <div id="sub-message" class="text-xs sm:text-sm font-bold text-slate-400 mt-2 flex items-center gap-1.5">
+          <i class="fa-regular fa-clock text-amber-500"></i>
+          <span id="total-time-label">총 5분 동안 정리해요</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center justify-center gap-3 mt-2">
+      <!-- Play / Pause Button -->
+      <button id="start-btn" class="btn-bounce font-cute flex items-center gap-2 px-8 py-3.5 bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-500 hover:to-orange-500 text-white text-2xl sm:text-3xl rounded-3xl shadow-lg shadow-orange-300/50 border-b-4 border-orange-600">
+        <i id="start-icon" class="fa-solid fa-play"></i>
+        <span id="start-text">정리 시작!</span>
+      </button>
+
+      <!-- Reset Button -->
+      <button id="reset-btn" class="btn-bounce font-cute flex items-center gap-2 px-5 py-3.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xl rounded-3xl shadow border-b-4 border-slate-400">
+        <i class="fa-solid fa-rotate-right"></i>
+        <span>다시 하기</span>
+      </button>
+
+      <!-- Quick Add Time Buttons -->
+      <div class="flex items-center gap-1.5 bg-white/90 p-1.5 rounded-2xl border-2 border-amber-200 shadow-sm">
+        <button id="add-1m-btn" class="btn-bounce px-3 py-2 bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold text-sm rounded-xl" title="1분 더하기">
+          +1분
+        </button>
+        <button id="add-3m-btn" class="btn-bounce px-3 py-2 bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold text-sm rounded-xl" title="3분 더하기">
+          +3분
+        </button>
+        <button id="add-5m-btn" class="btn-bounce px-3 py-2 bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold text-sm rounded-xl" title="5분 더하기">
+          +5분
+        </button>
+      </div>
+    </div>
+
+    <div class="w-full max-w-2xl mt-5 bg-white/70 backdrop-blur-sm p-3.5 sm:p-4 rounded-3xl border-2 border-orange-100 shadow-md">
+      <div class="flex items-center justify-between mb-2.5 px-2">
+        <span class="font-cute text-base sm:text-lg text-slate-700 flex items-center gap-1.5">
+          <i class="fa-solid fa-shapes text-orange-400"></i> 유치원 상황별 모드 골라보기
+        </span>
+        <span class="text-xs text-slate-500 font-bold">원하는 활동을 눌러주세요</span>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <!-- Preset 1: Toy Clean up (5 mins) -->
+        <button class="preset-card btn-bounce flex flex-col items-center p-3 bg-amber-50 hover:bg-amber-100 border-2 border-amber-300 rounded-2xl active" data-seconds="300" data-label="장난감 정리 시간" data-emoji="🧸">
+          <span class="text-2xl mb-1">🧸</span>
+          <span class="font-cute text-base text-amber-900 font-bold">장난감 정리</span>
+          <span class="text-xs text-amber-600 font-bold">5분</span>
+        </button>
+
+        <!-- Preset 2: Fast Clean up (3 mins) -->
+        <button class="preset-card btn-bounce flex flex-col items-center p-3 bg-rose-50 hover:bg-rose-100 border-2 border-rose-200 rounded-2xl" data-seconds="180" data-label="번개 정리 시간" data-emoji="⚡">
+          <span class="text-2xl mb-1">⚡</span>
+          <span class="font-cute text-base text-rose-900 font-bold">번개 쏙쏙 정리</span>
+          <span class="text-xs text-rose-600 font-bold">3분</span>
+        </button>
+
+        <!-- Preset 3: Handwash / Toothbrush (2 mins) -->
+        <button class="preset-card btn-bounce flex flex-col items-center p-3 bg-sky-50 hover:bg-sky-100 border-2 border-sky-200 rounded-2xl" data-seconds="120" data-label="손 씻기 & 양치질" data-emoji="🧼">
+          <span class="text-2xl mb-1">🧼</span>
+          <span class="font-cute text-base text-sky-900 font-bold">뽀득뽀득 손씻기</span>
+          <span class="text-xs text-sky-600 font-bold">2분</span>
+        </button>
+
+        <!-- Preset 4: Snack / Rest (10 mins) -->
+        <button class="preset-card btn-bounce flex flex-col items-center p-3 bg-emerald-50 hover:bg-emerald-100 border-2 border-emerald-200 rounded-2xl" data-seconds="600" data-label="간식 & 휴식 시간" data-emoji="🍎">
+          <span class="text-2xl mb-1">🍎</span>
+          <span class="font-cute text-base text-emerald-900 font-bold">냠냠 맛있는 간식</span>
+          <span class="text-xs text-emerald-600 font-bold">10분</span>
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="w-full max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 font-bold gap-2 pt-2 px-4 border-t border-amber-200/60">
+    <div class="flex items-center gap-2">
+      <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+      <span>1분 전 및 완료 시점에 다정하고 귀여운 목소리로 알려줘요!</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <button id="song-btn" class="hover:text-amber-700 underline flex items-center gap-1 cursor-pointer">
+        <i class="fa-solid fa-music text-amber-500"></i> 정리 칭찬 효과음 팡팡
+      </button>
+    </div>
+  </footer>
+
+  <div id="celebration-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-300">
+    <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full text-center border-4 border-amber-300 shadow-2xl transform scale-90 transition-transform duration-300" id="celebration-box">
+      <div class="text-7xl mb-3 animate-bounce">🎉</div>
+      <h3 class="font-cute text-3xl sm:text-4xl text-amber-600 mb-2">정리 끝! 참 잘했어요!</h3>
+      <p id="celebration-desc" class="text-slate-600 font-bold text-base mb-6 leading-relaxed">
+        친구들 모두 제자리에 꼭꼭 정리를 완료했어요!<br>우리 반 친구들 최고예요! 👏✨
+      </p>
+      <button id="modal-close-btn" class="btn-bounce font-cute w-full py-3.5 bg-gradient-to-r from-amber-400 to-orange-400 text-white text-2xl rounded-2xl shadow-lg border-b-4 border-orange-600">
+        최고예요! 고마워요 💖
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // Pure Web Audio API Synthesizer (No external sound files required)
+    const AudioEngine = {
+      ctx: null,
+      
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContext();
+        }
+        if (this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      },
+
+      playBeep(freq = 523.25, duration = 0.2, type = 'sine') {
+        try {
+          this.init();
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+          
+          gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+
+          osc.start();
+          osc.stop(this.ctx.currentTime + duration);
+        } catch(e) {
+          console.warn("Audio play prevented:", e);
+        }
+      },
+
+      // Gentle xylophone sparkle (start/add time)
+      playSparkle() {
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+        notes.forEach((freq, idx) => {
+          setTimeout(() => this.playBeep(freq, 0.25, 'triangle'), idx * 80);
+        });
+      },
+
+      // Warning chime (1 minute remaining)
+      playWarningChime() {
+        const notes = [783.99, 659.25, 783.99];
+        notes.forEach((freq, idx) => {
+          setTimeout(() => this.playBeep(freq, 0.3, 'sine'), idx * 160);
+        });
+      },
+
+      // Grand celebration fanfare (Timer complete)
+      playCelebrationFanfare() {
+        const melody = [
+          { f: 523.25, d: 0.15 }, // C5
+          { f: 523.25, d: 0.15 }, // C5
+          { f: 523.25, d: 0.15 }, // C5
+          { f: 659.25, d: 0.35 }, // E5
+          { f: 783.99, d: 0.25 }, // G5
+          { f: 1046.50, d: 0.6 }  // C6
+        ];
+        let delay = 0;
+        melody.forEach(item => {
+          setTimeout(() => this.playBeep(item.f, item.d, 'triangle'), delay);
+          delay += item.d * 1000 * 0.85;
+        });
+      }
+    };
+
+    const CuteVoiceAnnouncer = {
+      enabled: true,
+      
+      speak(text) {
+        if (!this.enabled) return;
+        if (!('speechSynthesis' in window)) return;
+
+        window.speechSynthesis.cancel(); // Stop prior speech
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'ko-KR';
+        // Cheerful, child-friendly high pitch & brisk clear tempo
+        utterance.pitch = 1.35; 
+        utterance.rate = 1.05;
+
+        // Try to pick a friendly Korean female or natural voice if available
+        const voices = window.speechSynthesis.getVoices();
+        const koVoices = voices.filter(v => v.lang.startsWith('ko'));
+        if (koVoices.length > 0) {
+          // Prefer friendly female voice (Google 한국의 여권 / Yuna / SunHi etc)
+          const preferred = koVoices.find(v => v.name.includes('Yuna') || v.name.includes('여성') || v.name.includes('Natural') || v.name.includes('Online'));
+          utterance.voice = preferred || koVoices[0];
+        }
+
+        window.speechSynthesis.speak(utterance);
+      }
+    };
+
+    // Ensure voices are loaded
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.getVoices();
+      };
+    }
+
+    const TimerState = {
+      totalSeconds: 300,
+      remainingSeconds: 300,
+      isRunning: false,
+      intervalId: null,
+      currentLabel: '장난감 정리 시간',
+      oneMinuteWarningPlayed: false,
+      mascotIndex: 0,
+      mascots: [
+        { emoji: '🧸', name: '곰돌이', phrase: '장난감 친구들을 제자리에 쏙쏙 넣어줘요! 💕' },
+        { emoji: '🐰', name: '토끼', phrase: '반짝반짝 깨끗하게 바르게 정리해볼까요? 🥕' },
+        { emoji: '🐥', name: '병아리', phrase: '삐약삐약! 책과 교구를 바르게 꽂아요~ 🐣' },
+        { emoji: '🐶', name: '강아지', phrase: '스스로 척척! 멋진 형님·언니처럼 해봐요! 🐾' },
+        { emoji: '🐼', name: '팬더', phrase: '천천히 조심조심, 다치지 않게 정리해요! 🎋' }
+      ]
+    };
+
+    // DOM Elements
+    const timeDisplay = document.getElementById('time-display');
+    const statusBadge = document.getElementById('status-badge');
+    const totalTimeLabel = document.getElementById('total-time-label');
+    const speechText = document.getElementById('speech-text');
+    const mascotEmoji = document.getElementById('mascot-emoji');
+    const mascotBtn = document.getElementById('mascot-btn');
+    const startBtn = document.getElementById('start-btn');
+    const startIcon = document.getElementById('start-icon');
+    const startText = document.getElementById('start-text');
+    const resetBtn = document.getElementById('reset-btn');
+    const progressCircle = document.getElementById('progress-circle');
+    const glowRing = document.getElementById('glow-ring');
+    const ttsToggleBtn = document.getElementById('tts-toggle-btn');
+    const voiceTestBtn = document.getElementById('voice-test-btn');
+    const fullscreenBtn = document.getElementById('fullscreen-btn');
+    const presetCards = document.querySelectorAll('.preset-card');
+    const celebrationModal = document.getElementById('celebration-modal');
+    const celebrationBox = document.getElementById('celebration-box');
+    const modalCloseBtn = document.getElementById('modal-close-btn');
+    const celebrationDesc = document.getElementById('celebration-desc');
+    const songBtn = document.getElementById('song-btn');
+
+    const CIRCUMFERENCE = 2 * Math.PI * 115; // 722.56px
+    progressCircle.style.strokeDasharray = `${CIRCUMFERENCE}`;
+
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+
+    function updateDisplay() {
+      timeDisplay.textContent = formatTime(TimerState.remainingSeconds);
+      
+      // Calculate Circle Progress
+      const ratio = TimerState.remainingSeconds / TimerState.totalSeconds;
+      const offset = CIRCUMFERENCE * (1 - ratio);
+      progressCircle.style.strokeDashoffset = `${offset}`;
+
+      // Color coding: Normal (Amber/Green), 1-minute danger (Rose/Red)
+      if (TimerState.remainingSeconds <= 60 && TimerState.isRunning) {
+        progressCircle.style.stroke = '#EF4444'; // Red
+        glowRing.className = 'absolute inset-4 rounded-full bg-rose-300/60 filter blur-xl animate-pulse';
+        statusBadge.className = 'font-cute px-3 py-0.5 rounded-full text-sm sm:text-base font-bold bg-rose-100 text-rose-700 border border-rose-300 mb-1';
+        statusBadge.textContent = '마무리 할 시간! ⏰';
+      } else if (TimerState.isRunning) {
+        progressCircle.style.stroke = '#F59E0B'; // Amber
+        glowRing.className = 'absolute inset-4 rounded-full bg-amber-200/50 filter blur-xl';
+        statusBadge.className = 'font-cute px-3 py-0.5 rounded-full text-sm sm:text-base font-bold bg-emerald-100 text-emerald-700 border border-emerald-300 mb-1';
+        statusBadge.textContent = `${TimerState.currentLabel} 진행 중 ✨`;
+      } else {
+        progressCircle.style.stroke = '#3B82F6'; // Sky Blue ready
+        glowRing.className = 'absolute inset-4 rounded-full bg-blue-100/40 filter blur-xl';
+        statusBadge.className = 'font-cute px-3 py-0.5 rounded-full text-sm sm:text-base font-bold bg-slate-100 text-slate-600 border border-slate-300 mb-1';
+        statusBadge.textContent = '준비 완료!';
+      }
+    }
+
+    function startTimer() {
+      if (TimerState.remainingSeconds <= 0) {
+        TimerState.remainingSeconds = TimerState.totalSeconds;
+      }
+
+      AudioEngine.init();
+      AudioEngine.playSparkle();
+
+      TimerState.isRunning = true;
+      TimerState.oneMinuteWarningPlayed = false;
+      startText.textContent = '잠깐 멈춤';
+      startIcon.className = 'fa-solid fa-pause';
+      startBtn.className = 'btn-bounce font-cute flex items-center gap-2 px-8 py-3.5 bg-gradient-to-r from-amber-500 to-rose-500 text-white text-2xl sm:text-3xl rounded-3xl shadow-lg border-b-4 border-rose-700';
+
+      // Speech Announcement on start
+      const mascot = TimerState.mascots[TimerState.mascotIndex];
+      CuteVoiceAnnouncer.speak(`친구들! ${TimerState.currentLabel}을 시작합니다! 장난감을 제자리에 쏙쏙 넣어주세요!`);
+
+      TimerState.intervalId = setInterval(() => {
+        if (TimerState.remainingSeconds > 0) {
+          TimerState.remainingSeconds--;
+          updateDisplay();
+
+          // 1 Minute Warning Trigger
+          if (TimerState.remainingSeconds === 60 && !TimerState.oneMinuteWarningPlayed) {
+            TimerState.oneMinuteWarningPlayed = true;
+            AudioEngine.playWarningChime();
+            speechText.textContent = '1분 남았어요! 사용하던 물건을 제자리에 쏙! 🏃‍♂️💨';
+            CuteVoiceAnnouncer.speak('1분 남았어요! 이제 마지막 장난감을 바르게 제자리에 놓아주세요!');
+          }
+
+          // Gentle countdown tick for last 5 seconds
+          if (TimerState.remainingSeconds <= 5 && TimerState.remainingSeconds > 0) {
+            AudioEngine.playBeep(440, 0.08, 'sine');
+          }
+        } else {
+          // Finished!
+          completeTimer();
+        }
+      }, 1000);
+
+      updateDisplay();
+    }
+
+    function pauseTimer() {
+      TimerState.isRunning = false;
+      clearInterval(TimerState.intervalId);
+      startText.textContent = '이어서 시작';
+      startIcon.className = 'fa-solid fa-play';
+      startBtn.className = 'btn-bounce font-cute flex items-center gap-2 px-8 py-3.5 bg-gradient-to-r from-emerald-400 to-teal-500 text-white text-2xl sm:text-3xl rounded-3xl shadow-lg border-b-4 border-teal-700';
+      statusBadge.textContent = '잠깐 쉬는 중 ⏸️';
+      CuteVoiceAnnouncer.speak('잠깐 멈췄어요.');
+    }
+
+    function resetTimer() {
+      TimerState.isRunning = false;
+      clearInterval(TimerState.intervalId);
+      TimerState.remainingSeconds = TimerState.totalSeconds;
+      TimerState.oneMinuteWarningPlayed = false;
+
+      startText.textContent = '정리 시작!';
+      startIcon.className = 'fa-solid fa-play';
+      startBtn.className = 'btn-bounce font-cute flex items-center gap-2 px-8 py-3.5 bg-gradient-to-r from-amber-400 to-orange-400 text-white text-2xl sm:text-3xl rounded-3xl shadow-lg border-b-4 border-orange-600';
+      
+      const mascot = TimerState.mascots[TimerState.mascotIndex];
+      speechText.textContent = mascot.phrase;
+      updateDisplay();
+    }
+
+    function completeTimer() {
+      TimerState.isRunning = false;
+      clearInterval(TimerState.intervalId);
+      updateDisplay();
+
+      startText.textContent = '다시 하기';
+      startIcon.className = 'fa-solid fa-rotate-right';
+
+      // Sound fanfare
+      AudioEngine.playCelebrationFanfare();
+
+      // Voice praise message
+      CuteVoiceAnnouncer.speak('정리 시간 끝! 모두 바르게 앉아볼까요? 우리 반 친구들 모두 최고예요, 참 잘했어요!');
+
+      // Launch Confetti Shower
+      launchConfetti();
+
+      // Show Celebration Modal
+      celebrationDesc.innerHTML = `<strong>${TimerState.currentLabel}</strong>이 끝났어요!<br>모두 힘을 합쳐 깨끗하게 정리한 우리 반 친구들 정말 멋져요! 🌟`;
+      openCelebrationModal();
+    }
+
+    function launchConfetti() {
+      try {
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+        setTimeout(() => {
+          confetti({
+            particleCount: 50,
+            angle: 60,
+            spread: 55,
+            origin: { x: 0 }
+          });
+          confetti({
+            particleCount: 50,
+            angle: 120,
+            spread: 55,
+            origin: { x: 1 }
+          });
+        }, 250);
+      } catch (e) {
+        console.warn('Confetti unavailable');
+      }
+    }
+
+    function openCelebrationModal() {
+      celebrationModal.classList.remove('hidden');
+      setTimeout(() => {
+        celebrationModal.classList.remove('opacity-0');
+        celebrationBox.classList.remove('scale-90');
+        celebrationBox.classList.add('scale-100');
+      }, 10);
+    }
+
+    function closeCelebrationModal() {
+      celebrationModal.classList.add('opacity-0');
+      celebrationBox.classList.remove('scale-100');
+      celebrationBox.classList.add('scale-90');
+      setTimeout(() => {
+        celebrationModal.classList.add('hidden');
+      }, 300);
+    }
+
+    startBtn.addEventListener('click', () => {
+      if (TimerState.isRunning) {
+        pauseTimer();
+      } else {
+        startTimer();
+      }
+    });
+
+    resetBtn.addEventListener('click', () => {
+      AudioEngine.playSparkle();
+      resetTimer();
+    });
+
+    // Add minute helpers (+1, +3, +5)
+    function addMinutes(mins) {
+      AudioEngine.playSparkle();
+      TimerState.totalSeconds += mins * 60;
+      TimerState.remainingSeconds += mins * 60;
+      totalTimeLabel.textContent = `총 ${Math.round(TimerState.totalSeconds / 60)}분 동안 정리해요`;
+      updateDisplay();
+      CuteVoiceAnnouncer.speak(`${mins}분을 더 추가했어요!`);
+    }
+
+    document.getElementById('add-1m-btn').addEventListener('click', () => addMinutes(1));
+    document.getElementById('add-3m-btn').addEventListener('click', () => addMinutes(3));
+    document.getElementById('add-5m-btn').addEventListener('click', () => addMinutes(5));
+
+    // Mascot switch interaction
+    mascotBtn.addEventListener('click', () => {
+      AudioEngine.playSparkle();
+      TimerState.mascotIndex = (TimerState.mascotIndex + 1) % TimerState.mascots.length;
+      const m = TimerState.mascots[TimerState.mascotIndex];
+      mascotEmoji.textContent = m.emoji;
+      speechText.textContent = m.phrase;
+      CuteVoiceAnnouncer.speak(`안녕! 나는 ${m.name}야! 함께 신나게 정리하자!`);
+    });
+
+    // Preset selection
+    presetCards.forEach(card => {
+      card.addEventListener('click', () => {
+        AudioEngine.playSparkle();
+        presetCards.forEach(c => c.classList.remove('border-amber-400', 'bg-amber-100', 'ring-4', 'ring-amber-200'));
+        card.classList.add('ring-4', 'ring-amber-200');
+
+        const secs = parseInt(card.getAttribute('data-seconds'), 10);
+        const label = card.getAttribute('data-label');
+        const emoji = card.getAttribute('data-emoji');
+
+        TimerState.totalSeconds = secs;
+        TimerState.remainingSeconds = secs;
+        TimerState.currentLabel = label;
+        totalTimeLabel.textContent = `총 ${Math.round(secs / 60)}분 동안 진행해요`;
+
+        speechText.textContent = `${label}! 우리 함께 척척 해볼까요? ${emoji}`;
+        CuteVoiceAnnouncer.speak(`${label}으로 시간을 맞췄어요.`);
+
+        resetTimer();
+      });
+    });
+
+    // Voice test button
+    voiceTestBtn.addEventListener('click', () => {
+      AudioEngine.playSparkle();
+      CuteVoiceAnnouncer.speak('안녕하세요 햇살반 어린이 여러분! 즐겁게 정리해보아요~');
+    });
+
+    // Toggle voice ON/OFF
+    ttsToggleBtn.addEventListener('click', () => {
+      CuteVoiceAnnouncer.enabled = !CuteVoiceAnnouncer.enabled;
+      if (CuteVoiceAnnouncer.enabled) {
+        ttsToggleBtn.className = 'flex items-center gap-1.5 px-3 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 text-sm font-bold rounded-2xl border border-emerald-300 transition shadow-sm';
+        ttsToggleBtn.innerHTML = `<i class="fa-solid fa-volume-high text-emerald-600"></i><span class="hidden sm:inline">음성 안내 ON</span>`;
+        CuteVoiceAnnouncer.speak('음성 안내를 켰어요.');
+      } else {
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        ttsToggleBtn.className = 'flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-500 text-sm font-bold rounded-2xl border border-slate-300 transition shadow-sm';
+        ttsToggleBtn.innerHTML = `<i class="fa-solid fa-volume-xmark text-slate-400"></i><span class="hidden sm:inline">음성 안내 OFF</span>`;
+      }
+    });
+
+    // Praise sound effect button
+    songBtn.addEventListener('click', () => {
+      AudioEngine.playCelebrationFanfare();
+      launchConfetti();
+      CuteVoiceAnnouncer.speak('오늘도 스스로 척척 정리한 어린이 여러분, 최고로 멋져요!');
+    });
+
+    // Modal close
+    modalCloseBtn.addEventListener('click', closeCelebrationModal);
+    celebrationModal.addEventListener('click', (e) => {
+      if (e.target === celebrationModal) closeCelebrationModal();
+    });
+
+    // Fullscreen Toggle
+    fullscreenBtn.addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+        fullscreenBtn.innerHTML = '<i class="fa-solid fa-compress text-lg"></i>';
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+          fullscreenBtn.innerHTML = '<i class="fa-solid fa-expand text-lg"></i>';
+        }
+      }
+    });
+
+    // Initialize initial display on load
+    window.addEventListener('load', () => {
+      updateDisplay();
+    });
+  </script>
+</body>
+</html>
